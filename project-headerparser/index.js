@@ -3,6 +3,7 @@
 
 // init project
 require('dotenv').config();
+const axios = require('axios')
 var express = require('express');
 var app = express();
 
@@ -28,12 +29,21 @@ app.set('trust proxy', true)
 
 // @TODO: return ipadress, language, and software as json result
 
-app.get('/api/whoami', (req, res) => {
-  res.json({
-    ipadress: req.ip,
-    language: req.headers['accept-language'],
-    software: req.headers['user-agent']
-  })
+app.get('/api/whoami', async (req, res) => {
+  try {
+      const { data } = await axios.get('https://api.ipify.org?format=json');
+      res.json({
+        ipadress: data.ip,
+        language: req.headers['accept-language'],
+        software: req.headers['user-agent']
+      })
+  } catch (err) {
+       res.json({
+      ipaddress: req.ip,
+      language: req.headers['accept-language']?.split(',')[0],
+      software: req.headers['user-agent']
+    });
+  }
 })
 
 // listen for requests :)
