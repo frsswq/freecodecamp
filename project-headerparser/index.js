@@ -25,26 +25,28 @@ app.get('/api/hello', function (req, res) {
   res.json({ greeting: 'hello API' });
 });
 
-app.set('trust proxy', true)
+app.set('trust proxy', true); // Important for deployed environments
 
-// @TODO: return ipadress, language, and software as json result
-
-app.get('/api/whoami', async (req, res) => {
-  try {
-      const { data } = await axios.get('https://api.ipify.org?format=json');
-      res.json({
-        ipadress: data.ip,
-        language: req.headers['accept-language'],
-        software: req.headers['user-agent']
-      })
-  } catch (err) {
-       res.json({
-      ipaddress: req.ip,
-      language: req.headers['accept-language']?.split(',')[0],
-      software: req.headers['user-agent']
-    });
+app.get('/api/whoami', (req, res) => {
+  // Extract IP from headers (works behind proxies)
+  let ip = req.headers['x-forwarded-for'] || req.ip;
+  
+  // Handle IPv6 localhost (::1) → convert to IPv4 (127.0.0.1)
+  if (ip === '::1') ip = '127.0.0.1';
+  
+  // If still getting local IP, try alternate headers
+  if (ip === '127.0.0.1') {
+    ip = req.headers['x-real-ip'] || 
+         req.connection.remoteAddress || 
+         req.socket.remoteAddress;
   }
-})
+
+  res.json({
+    ipaddress: ip, // Will show public IP in tests
+    language: req.headers['accept-language'],
+    software: req.headers['user-agent']
+  });
+});
 
 // listen for requests :)
 var listener = app.listen(process.env.PORT || 3001, function () {
